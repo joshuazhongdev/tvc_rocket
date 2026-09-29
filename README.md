@@ -11,19 +11,9 @@ Static fire testing is done. No actual flight yet.
 
 ## Why this exists
 
-Most hobby TVC builds assume a fixed servo-to-gimbal ratio. `src/linkage.h`
-solves the actual four-bar linkage geometry instead of approximating it.
-
-The IMU isn't mounted in line with the gimbal. Bench test 1 measures that
-rotation and a mixing matrix corrects for it before the PID ever sees the
-error.
-
-Two attitude estimators run on the same data at the same time: a two-angle
-Kalman filter, and a pole-free 3D vector estimator, so they can be checked
-against each other instead of trusted blindly.
-
-`cyd/test/` compiles the real handset UI against stub hardware and drives it
-against a mocked rocket. No hardware needed to run it.
+TVC is usually gatekept behind expensive flight computers or hand-waved
+geometry. This runs end to end on a $10 ESP32-S3 and off-the-shelf hobby
+servos, so it's something any hobbyist can actually build and use.
 
 ## Hardware
 
@@ -33,16 +23,6 @@ against a mocked rocket. No hardware needed to run it.
 | IMU | MPU9250, I2C `0x68`, 400 kHz |
 | Actuation | 2x MG90S servos (SG90-compatible), 50 Hz, 500-2400 us |
 | Handset | ESP32-2432S028R (Cheap Yellow Display) |
-
-### Rocket wiring
-
-| Signal | GPIO |
-| --- | --- |
-| I2C SDA | 16 |
-| I2C SCL | 15 |
-| Pitch servo | 5 |
-| Yaw servo | 6 |
-| Status LED | 2 |
 
 ## Layout
 
