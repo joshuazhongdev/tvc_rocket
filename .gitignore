@@ -1,0 +1,23 @@
+# PlatformIO build output, both projects
+.pio
+cyd/.pio
+
+# Host test harness build output
+cyd/test/build/
+cyd/test/test_ui
+cyd/test/test_touch
+
+# Editor and OS
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Flight logs pulled off the vehicle
+logs/
+*.csv
