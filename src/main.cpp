@@ -9,6 +9,8 @@
 #include "linkage.h"
 #include "flightlog.h"
 
+//the S3 variant header already defines this; ours is the board's actual LED pin
+#undef LED_BUILTIN
 #define LED_BUILTIN 2
 #define SERVOPITCH_PIN 5
 #define SERVOYAW_PIN 6

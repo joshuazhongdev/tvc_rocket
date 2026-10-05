@@ -61,6 +61,10 @@ public:
   //forwarders so `#define Serial con` survives the two places main.cpp uses Serial as something other than a Stream
   void begin(unsigned long baud) { Serial.begin(baud); }
   explicit operator bool() { return (bool)Serial; }
+#if ARDUINO_USB_CDC_ON_BOOT
+  //native USB only: HardwareSerial has no such call, so the uart build must not see it
+  void setTxTimeoutMs(uint32_t ms) { Serial.setTxTimeoutMs(ms); }
+#endif
 
   size_t write(uint8_t c) override;
   size_t write(const uint8_t *b, size_t n) override;

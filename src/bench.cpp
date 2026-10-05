@@ -49,15 +49,15 @@ static void banner() {
   Serial.printf ("# gimbal reach  pitch %+.1f to %+.1f   yaw %+.1f to %+.1f deg\n",
                  pitchDeflMin, pitchDeflMax, yawDeflMin, yawDeflMax);
   Serial.println("#");
-  Serial.println("# TESTS   numbered in the order you run them.");
-  Serial.println("#   1  axis + sign map     FIRST. May send you back to a reflash.");
-  Serial.println("#   2  servo travel        Binding, real deflection at the limits.");
-  Serial.println("#   3  IMU health          Magnitude, noise, residual bias.");
-  Serial.println("#   4  filter noise        30 s, servos still.");
-  Serial.println("#   5  filter + servos     10 s, servos sweeping. Coupling.");
-  Serial.println("#   6  gyro-only drift     30 s. THIS IS THE FLIGHT CONFIG.");
-  Serial.println("#   7  gyro-only return    Tilt away and back.");
-  Serial.println("#   8  closed loop         Servos move. Needs 1 applied first.");
+  Serial.println("# TESTS   run in listed order");
+  Serial.println("#   1  axis + sign map     run first; may require a reflash");
+  Serial.println("#   2  servo travel        binding, deflection at limits");
+  Serial.println("#   3  IMU health          magnitude, noise, residual bias");
+  Serial.println("#   4  filter noise        30 s, servos still");
+  Serial.println("#   5  filter + servos     10 s, servos sweeping, coupling");
+  Serial.println("#   6  gyro-only drift     30 s, FLIGHT CONFIG");
+  Serial.println("#   7  gyro-only return    tilt away and back");
+  Serial.println("#   8  closed loop         SERVOS MOVE. needs 1 applied first");
   Serial.println("#");
   Serial.println("# GIMBAL  G<deg> | G<pitch>,<yaw>   geometry solved");
   Serial.println("#         W<radius>                 envelope walk, 12 bearings");
@@ -66,8 +66,8 @@ static void banner() {
   Serial.println("# LOG     L dump  F list  E erase  M save now  T<unix> clock");
   Serial.println("#         C live CSV");
   Serial.println("# SET     p/i/d <num> gains   g gyro-only   ? menu   q exit");
-  Serial.println("#         letter commands take either case, except G and g,");
-  Serial.println("#         which are different commands.");
+  Serial.println("#         letters: either case, except G and g,");
+  Serial.println("#         which are distinct commands");
   Serial.println("#");
 }
 
@@ -118,16 +118,16 @@ static void testServoTravel() {
     for (int a = hi; a >= mid; a--) { s[k]->write(a); delay(25); }
     delay(300);
   }
-  Serial.println("# Watch for binding, buzzing at the ends, or linkage fouling.");
-  Serial.println("# Both back at their measured neutral. Check the nozzle is square");
-  Serial.println("# by eye: if it is not, adjust servoOffset, not servoTrim.");
-  Serial.println("# Then measure real nozzle deflection at each end and compare");
-  Serial.println("# against the travel the boot banner predicted.");
+  Serial.println("# check: binding, buzz at ends, linkage fouling");
+  Serial.println("# both axes back at measured neutral");
+  Serial.println("# nozzle square by eye; if not, adjust servoOffset not servoTrim");
+  Serial.println("# nozzle_defl: measure at both ends");
+  Serial.println("# compare against travel from boot banner");
 }
 
 // --- 2: IMU health ---------------------------------------------------------
 static void testImuHealth() {
-  Serial.println("# Reading 300 samples, keep still...");
+  Serial.println("# imu_health: 300 samples, HOLD STILL");
   Stat am, gx, gy, gz;
   double axs = 0, ays = 0, azs = 0;
   int n = 0, fails = 0;
@@ -155,16 +155,16 @@ static void testImuHealth() {
   Serial.printf("# axis map idx %d %d %d  sign %d %d %d\n",
                 mapIdx[0], mapIdx[1], mapIdx[2], mapSign[0], mapSign[1], mapSign[2]);
   if (fabs(am.mean - 1.0) > 0.03)
-    Serial.println("# WARNING: magnitude off. Check the accel range register or the LSB constant.");
+    Serial.println("# WARN accel magnitude off, check range register or LSB constant");
   if (gx.sd() > 3 || gy.sd() > 3 || gz.sd() > 3)
-    Serial.println("# WARNING: gyro noisy. Check the DLPF setting and that nothing is vibrating.");
+    Serial.println("# WARN gyro noisy, check DLPF and vibration");
   if (fabs(gx.mean) > 0.5 || fabs(gy.mean) > 0.5 || fabs(gz.mean) > 0.5)
-    Serial.println("# WARNING: gyro bias left over. Re-run calibration while truly still.");
+    Serial.println("# WARN gyro bias remains, recalibrate while still");
 }
 
 // --- 3 and 4: filter noise and drift ---------------------------------------
 static void filterNoiseRun(uint32_t seconds, bool shakeServos) {
-  Serial.printf("# %lu s run, %s, %s. Do not touch the rocket.\n",
+  Serial.printf("# filter_run %lu s, %s, %s. DO NOT TOUCH\n",
                 (unsigned long)seconds, shakeServos ? "servos sweeping" : "servos still",
                 accelTrusted ? "accel + gyro" : "GYRO ONLY");
   Stat rp, ry, kp, ky, tilt;
@@ -189,7 +189,7 @@ static void filterNoiseRun(uint32_t seconds, bool shakeServos) {
   if (shakeServos) { servoPitch.write(linkPitch.servoTrim);
                      servoYaw.write(linkYaw.servoTrim); }
 
-  Serial.println("#            noise sd (deg)   drift over run (deg)");
+  Serial.println("#            noise_sd (deg)   drift_over_run (deg)");
   Serial.printf("# raw pitch      %7.3f            %7.3f\n", rp.sd(), rp.drift());
   Serial.printf("# raw yaw       %7.3f            %7.3f\n", ry.sd(), ry.drift());
   Serial.printf("# kal pitch      %7.3f            %7.3f\n", kp.sd(), kp.drift());
@@ -197,25 +197,25 @@ static void filterNoiseRun(uint32_t seconds, bool shakeServos) {
   Serial.printf("# arrow tilt     %7.3f            %7.3f\n", tilt.sd(), tilt.drift());
   Serial.printf("# noise reduction: pitch %.1fx, yaw %.1fx\n",
                 kp.sd() > 0 ? rp.sd() / kp.sd() : 0.0, ky.sd() > 0 ? ry.sd() / ky.sd() : 0.0);
-  Serial.println("# Raising R_measure smooths more and drifts more. Lowering it does");
-  Serial.println("# the reverse. Record these numbers against the tuning you used.");
+  Serial.println("# R_measure higher: smoother, more drift. lower: reverse");
+  Serial.println("# record these values against the tuning in use");
 }
 
 // --- 5: live closed loop ---------------------------------------------------
 static void testClosedLoop() {
   centreGimbal();
-  Serial.printf ("# Gimbal centred at its measured neutral (pitch %.1f, yaw %.1f).\n",
+  Serial.printf ("# gimbal centred at measured neutral: pitch %.1f, yaw %.1f\n",
                  linkPitch.servoTrim, linkYaw.servoTrim);
-  Serial.println("# SERVOS WILL MOVE. Hold the airframe, keep fingers clear of the gimbal.");
+  Serial.println("# SERVOS MOVE. hands clear. hold airframe.");
   Serial.printf("# gains kP %.2f  kI %.2f  kD %.2f\n", benchKp, benchKi, benchKd);
-  Serial.println("# Tilt it by hand. The gimbal should push back the other way.");
-  Serial.println("# If it slams to a stop and stays there, your TVC sign is inverted.");
+  Serial.println("# tilt by hand; gimbal opposes");
+  Serial.println("# slam-to-stop and hold = TVC sign inverted");
   for (int i = 3; i > 0; i--) { Serial.printf("# %d...\n", i); delay(1000); }
   //discards input queued during the countdown
   while (Serial.available() > 0) Serial.read();
-  Serial.println("# Watch the SIGN columns: cmdP should oppose gimPitch, and");
-  Serial.println("# cmdY should oppose gimYaw. Same sign means that axis is");
-  Serial.println("# driving the rocket over instead of catching it.");
+  Serial.println("# sign check: cmdP opposes gimPitch,");
+  Serial.println("# cmdY opposes gimYaw. same sign = that axis");
+  Serial.println("# drives the rocket over instead of catching it");
   Serial.println("# t_ms,gimPitch,gimYaw,arrowTilt,accelG,cmdP,cmdY,svP,svY");
 
   unsigned long t0 = millis(), lastImu = 0, lastPrint = 0;
@@ -256,25 +256,25 @@ static void testClosedLoop() {
   servoYaw.write(linkYaw.servoTrim);
   unsigned long ran = millis() - t0;
   if (stopKey)
-    Serial.printf("# Stopped after %lu ms by key '%c' (0x%02X). Not a fault: any\n"
-                  "# character stops this test. Re-run with 8 and do not type\n"
-                  "# anything until it finishes.\n",
+    Serial.printf("# stopped %lu ms, key '%c' (0x%02X). not a fault\n"
+                  "# any character stops this test\n"
+                  "# re-run with 8, no input until done\n",
                   ran, (stopKey >= 32 && stopKey < 127) ? stopKey : '?', (unsigned)stopKey);
   else
-    Serial.printf("# Ran the full %lu ms. Servos centred.\n", ran);
+    Serial.printf("# ran full %lu ms, servos centred\n", ran);
 
   //correlation between tilt and command; negative means the gimbal opposed the tilt
   if (ccN > 20) {
-    Serial.printf("# tilt-vs-command correlation: pitch %+.2f, yaw %+.2f  (%d scored samples)\n",
+    Serial.printf("# corr tilt-vs-cmd: pitch %+.2f, yaw %+.2f  (%d scored samples)\n",
                   ccPP / ccN, ccYY / ccN, (int)ccN);
-    Serial.println("# Both should be NEGATIVE: the gimbal opposing the tilt.");
-    if (ccPP > 0) Serial.println("# PITCH IS POSITIVE FEEDBACK. Do not fly. Recheck the mix matrix.");
-    if (ccYY > 0) Serial.println("# YAW IS POSITIVE FEEDBACK. Do not fly. Recheck the mix matrix.");
+    Serial.println("# both must be NEGATIVE = gimbal opposing tilt");
+    if (ccPP > 0) Serial.println("# FAIL pitch positive feedback. DO NOT FLY. recheck mix matrix");
+    if (ccYY > 0) Serial.println("# FAIL yaw positive feedback. DO NOT FLY. recheck mix matrix");
   } else {
     //too few samples passed the tilt threshold, not that the test failed
-    Serial.printf("# NO VERDICT: only %d samples were past the 5 degree scoring\n"
-                  "# threshold, and 20 are needed. Tilt it further, and hold each\n"
-                  "# tilt for a second or two rather than waving it.\n", (int)ccN);
+    Serial.printf("# NO VERDICT: %d samples past the 5 deg scoring threshold\n"
+                  "# 20 needed. tilt further\n"
+                  "# hold each tilt 1-2 s, no waving\n", (int)ccN);
   }
 }
 
@@ -297,14 +297,14 @@ static void testCsvLog() {
                     V[0], V[1], V[2], mag, G[0], G[1], G[2]);
     }
   }
-  Serial.println("# Log stopped.");
+  Serial.println("# log stopped");
 }
 
 // --- 7: gyro-only drift, the flight configuration --------------------------
 //accelerometer is off during the burn; this 30 s drift is the flight error budget
 static void testGyroOnlyDrift() {
   bool saved = benchForceGyroOnly;
-  Serial.println("# Settling 3 s with the accelerometer on...");
+  Serial.println("# settling 3 s, accel on");
   benchForceGyroOnly = false;
   unsigned long t0 = millis(), lastImu = 0;
   while (millis() - t0 < 3000) {
@@ -313,7 +313,7 @@ static void testGyroOnlyDrift() {
   }
   float p0 = kalAnglePitch, r0 = kalAngleYaw, v0 = tiltFromArrow();
 
-  Serial.println("# Accelerometer OFF. 30 s, hold perfectly still.");
+  Serial.println("# accel OFF. hold still 30 s");
   benchForceGyroOnly = true;
   t0 = millis();
   while (millis() - t0 < 30000UL) {
@@ -327,20 +327,20 @@ static void testGyroOnlyDrift() {
   benchForceGyroOnly = saved;
 
   float dp = kalAnglePitch - p0, dr = kalAngleYaw - r0, dv = tiltFromArrow() - v0;
-  Serial.println("# --- gyro-only drift over 30 s ---");
+  Serial.println("# --- gyro_only_drift over 30 s ---");
   Serial.printf("# angle pitch %+.2f deg   yaw %+.2f deg\n", dp, dr);
   Serial.printf("# arrow tilt  %+.2f deg\n", dv);
-  Serial.printf("# scaled to a 0.8 s burn: pitch %+.3f  yaw %+.3f  tilt %+.3f deg\n",
+  Serial.printf("# scaled to 0.8 s burn: pitch %+.3f  yaw %+.3f  tilt %+.3f deg\n",
                 dp * 0.8f / 30.0f, dr * 0.8f / 30.0f, dv * 0.8f / 30.0f);
-  Serial.println("# Over about 5 deg in 30 s means the gyro calibration was taken");
-  Serial.println("# while something was moving. Re-run it.");
+  Serial.println("# WARN over ~5 deg in 30 s = gyro cal taken while moving");
+  Serial.println("# recalibrate while still");
 }
 
 // --- 8: gyro-only return to mark -------------------------------------------
 //tests gyro scale factor: a nonzero residual means the deg/s constant is wrong for the range in use
 static void testGyroOnlyReturn() {
   bool saved = benchForceGyroOnly;
-  Serial.println("# Settling 3 s, accelerometer on. Rocket on its mark.");
+  Serial.println("# settling 3 s, accel on. rocket on mark");
   benchForceGyroOnly = false;
   unsigned long t0 = millis(), lastImu = 0;
   while (millis() - t0 < 3000) {
@@ -349,8 +349,8 @@ static void testGyroOnlyReturn() {
   }
   float p0 = kalAnglePitch, r0 = kalAngleYaw;
 
-  Serial.println("# Accelerometer OFF. 20 s: tilt it well over, wave it around,");
-  Serial.println("# then put it back exactly on the mark and hold.");
+  Serial.println("# accel OFF. 20 s: tilt well over, wave around,");
+  Serial.println("# then return exactly to mark and hold");
   benchForceGyroOnly = true;
   t0 = millis();
   while (millis() - t0 < 20000UL) {
@@ -360,11 +360,11 @@ static void testGyroOnlyReturn() {
   }
   benchForceGyroOnly = saved;
 
-  Serial.println("# --- residual after returning to the mark ---");
+  Serial.println("# --- residual after return to mark ---");
   Serial.printf("# pitch %+.2f deg   yaw %+.2f deg\n",
                 kalAnglePitch - p0, kalAngleYaw - r0);
-  Serial.println("# Under about 2 deg is good. A residual that grows with how far");
-  Serial.println("# you tilted means GYRO_SENSITIVITY is wrong for the range in use.");
+  Serial.println("# under ~2 deg is good. residual growing with tilt size =");
+  Serial.println("# GYRO_SENSITIVITY wrong for the range in use");
 }
 
 // --- 9: axis and sign mapping ----------------------------------------------
@@ -385,27 +385,27 @@ struct AxisProbe { float dPitch, dYaw; };
 static AxisProbe probeServo(Servo &s, Linkage &k, const char *name) {
   centreGimbal();                  //both axes neutral, not just this one
   Serial.println("#");
-  Serial.println("# Gimbal centred. Hold the rocket vertical in launch attitude.");
-  Serial.println("# Press a key.");
+  Serial.println("# gimbal centred. hold rocket vertical, launch attitude");
+  Serial.println("# key to continue");
   holdUntilKey();
   float p0 = kalAnglePitch, r0 = kalAngleYaw;
 
   const float probeDeg = 8.0f;     //well inside the 10 deg envelope, easy to see
   float sv;
   if (!linkageServoAngle(k, probeDeg, sv)) {
-    Serial.printf("# %s: linkage cannot reach %+.0f deg. Cannot probe this axis.\n",
+    Serial.printf("# %s: linkage cannot reach %+.0f deg, axis not probed\n",
                   name, probeDeg);
     return AxisProbe{0.0f, 0.0f};
   }
   s.write(sv);
-  Serial.printf("# %s commanded %+.0f deg of NOZZLE (servo %.1f). Look at where\n"
-                "# the nozzle now aims.\n", name, probeDeg, sv);
-  Serial.println("# Under thrust the nose would swing that same way.");
-  Serial.println("# Leave the servo there and TILT THE WHOLE ROCKET so the nose");
-  Serial.println("# moves that way, about 20 to 30 deg. Hold it and press a key.");
-  Serial.println("# Only the DIRECTION you tilt matters. How far is just signal");
-  Serial.println("# strength, so bigger is easier to read, and it need not match");
-  Serial.println("# the other axis.");
+  Serial.printf("# %s: nozzle commanded %+.0f deg (servo %.1f). SERVOS MOVE.\n"
+                "# hands clear. note nozzle aim\n", name, probeDeg, sv);
+  Serial.println("# under thrust the nose swings the same way");
+  Serial.println("# leave servo. TILT WHOLE ROCKET, nose that way");
+  Serial.println("# tilt 20-30 deg, hold, key to continue");
+  Serial.println("# only tilt DIRECTION is read. magnitude is signal");
+  Serial.println("# strength only: bigger reads easier, need not match");
+  Serial.println("# the other axis");
   holdUntilKey();
 
   AxisProbe r = { kalAnglePitch - p0, kalAngleYaw - r0 };
@@ -416,22 +416,22 @@ static AxisProbe probeServo(Servo &s, Linkage &k, const char *name) {
 
 static void testAxisMapping() {
   Serial.println("# ===== axis and sign mapping =====");
-  Serial.println("# Two probes, one per servo. Servos will move.");
+  Serial.println("# 2 probes, one per servo. SERVOS MOVE. hands clear.");
   Serial.println("#");
   centreGimbal(1000);
-  Serial.printf ("# Both servos are now at their measured neutral (pitch %.1f, yaw"
-                 " %.1f).\n", linkPitch.servoTrim, linkYaw.servoTrim);
-  Serial.println("# The nozzle should be square with the airframe, aimed straight");
-  Serial.println("# down the body axis with no deflection.");
-  Serial.println("# Sight along the tube and check it.");
+  Serial.printf ("# servos at measured neutral: pitch %.1f, yaw"
+                 " %.1f\n", linkPitch.servoTrim, linkYaw.servoTrim);
+  Serial.println("# expect nozzle square with airframe, no deflection,");
+  Serial.println("# aimed down the body axis");
+  Serial.println("# sight along tube to check");
   Serial.println("#");
-  Serial.println("# If it is visibly off, stop and fix it now: adjust servoOffset");
-  Serial.println("# in setupLinkages(), or move the horn by a spline for a big");
-  Serial.println("# error. Every number below is");
-  Serial.println("# measured relative to this neutral, so a crooked neutral puts the");
-  Serial.println("# same error into the whole test and into every flight after it.");
+  Serial.println("# if visibly off: adjust servoOffset");
+  Serial.println("# in setupLinkages(), or move the horn one spline for a large");
+  Serial.println("# error. every value below is");
+  Serial.println("# relative to this neutral; a crooked neutral puts the");
+  Serial.println("# same error into the test and every flight after");
   Serial.println("#");
-  Serial.println("# Press a key when the gimbal is straight.");
+  Serial.println("# gimbal straight, key to continue");
   holdUntilKey();
 
   AxisProbe pp = probeServo(servoPitch, linkPitch, "PITCH");
@@ -446,9 +446,9 @@ static void testAxisMapping() {
   Serial.println("#");
   Serial.println("# ===== RESULT =====");
   if (pMag < 8.0f || yMag < 8.0f) {
-    Serial.printf("# Tilts too small to read (%.1f and %.1f deg). Re-run and tilt\n",
+    Serial.printf("# tilts too small: %.1f and %.1f deg. re-run\n",
                   pMag, yMag);
-    Serial.println("# a good 20 to 30 deg each time.");
+    Serial.println("# tilt 20-30 deg each probe");
     centreGimbal();
     return;
   }
@@ -462,14 +462,14 @@ static void testAxisMapping() {
   Serial.printf("# pitch servo -> %5.1f deg of tilt, bearing %+7.1f\n", pMag, pAng);
   Serial.printf("# yaw   servo -> %5.1f deg of tilt, bearing %+7.1f\n", yMag, yAng);
   Serial.printf("# separation %+.1f deg (90 or -90 is a clean two-axis gimbal)\n", sep);
-  Serial.printf("# tilt sizes %.0f and %.0f deg (YOUR hand, not the gimbal. Only\n"
-                "#             the bearings above carry information.)\n", pMag, yMag);
+  Serial.printf("# tilt sizes %.0f and %.0f deg (hand tilt, not gimbal)\n"
+                "#             bearings above carry the information\n", pMag, yMag);
 
   if (fabsf(fabsf(sep) - 90.0f) > 30.0f) {
     Serial.println("#");
-    Serial.println("# The two axes are not close to perpendicular. Either the two");
-    Serial.println("# tilts really were in similar directions, or something is");
-    Serial.println("# mechanically wrong. Re-run before believing anything below.");
+    Serial.println("# WARN axes not perpendicular. either both tilts were in");
+    Serial.println("# similar directions, or there is a mechanical fault.");
+    Serial.println("# re-run before trusting any value below");
     centreGimbal();
     return;
   }
@@ -486,22 +486,22 @@ static void testAxisMapping() {
   Serial.printf("# squared up by %+.1f deg; matrix determinant %+.3f\n", derr, det);
 
   Serial.println("#");
-  Serial.printf("# The IMU is rotated about the nose by roughly %+.0f deg relative\n", pAng);
-  Serial.printf("# to the gimbal%s. That is not a fault, it just has to be\n",
-                det < 0 ? ", and the handedness is flipped" : "");
-  Serial.println("# undone in software. Paste these into main.cpp, next to the PID:");
+  Serial.printf("# imu rotation about nose: %+.0f deg relative\n", pAng);
+  Serial.printf("# to gimbal%s. not a fault, undone in software\n",
+                det < 0 ? ", handedness flipped" : "");
+  Serial.println("# paste into main.cpp, next to the PID:");
   Serial.println("#");
   Serial.printf("#     mixPP = %+.4ff;  mixPY = %+.4ff;\n", m[0][0], m[0][1]);
   Serial.printf("#     mixYP = %+.4ff;  mixYY = %+.4ff;\n", m[1][0], m[1][1]);
   Serial.println("#");
-  Serial.println("# Leave linkPitch.dir and linkYaw.dir at +1: a reversed axis shows");
-  Serial.println("# up as a negative diagonal term above, and the matrix handles it.");
+  Serial.println("# keep linkPitch.dir and linkYaw.dir at +1; a reversed axis shows");
+  Serial.println("# as a negative diagonal term above, matrix handles it");
   Serial.println("#");
   // ---- how is the currently compiled matrix doing? --------------------------
   //drives servos directly, measuring raw hardware rotation; pidControl() is what applies the mix, not this test
   //compiled matrix applied to these probe vectors to see how much energy lands on the wrong axis
   Serial.println("#");
-  Serial.println("# ----- how the matrix already in the firmware performs -----");
+  Serial.println("# ----- compiled matrix performance -----");
   float worst = 0.0f;
   const float vec[2][2] = {{ pp.dPitch, pp.dYaw }, { yp.dPitch, yp.dYaw }};
   const char *vn[2] = { "pitch probe", "yaw probe  " };
@@ -516,12 +516,12 @@ static void testAxisMapping() {
   }
   Serial.println("#");
   if (worst < 12.0f) {
-    Serial.printf("# Worst leak %.1f%%. Good enough to fly: that is within the spread\n", worst);
-    Serial.println("# of hand-tilt measurements, so chasing it further just fits noise.");
-    Serial.println("# Go to test 8: tilt by hand and the gimbal must push back, not");
-    Serial.println("# slam to a stop and stay there.");
+    Serial.printf("# worst leak %.1f%%: flight-acceptable, within hand-tilt spread\n", worst);
+    Serial.println("# further tuning fits noise");
+    Serial.println("# next test 8: gimbal must push back on hand tilt, not");
+    Serial.println("# slam to a stop and hold");
   } else {
-    Serial.printf("# Worst leak %.1f%%. Paste the matrix above, reflash, and re-run.\n", worst);
+    Serial.printf("# worst leak %.1f%%: paste matrix above, reflash, re-run\n", worst);
   }
   centreGimbal();
 }
@@ -639,7 +639,7 @@ void benchRun() {
       case '8': testClosedLoop();         break;
       case 'c':
       case 'C': testCsvLog();             break;
-      case '9': Serial.println("# 9 is gone. Tests are 1-8, in run order. ? for the menu.");
+      case '9': Serial.println("# 9 removed. tests 1-8, in run order. ? menu");
                 break;
       //G takes degrees of thrust deflection, not servo degrees; four-bar solved per axis
       //G<num> sets both axes to the same angle; G<pitch>,<yaw> sets them independently
@@ -651,8 +651,8 @@ void benchRun() {
         Serial.printf("# gimbal  pitch %+.1f  yaw %+.1f   combined tilt %.1f deg\n",
                       gp, gy, mag);
         if (mag > MAX_GIMBAL_DEG + 0.05f)
-          Serial.printf("#   note: past the %.0f deg flight limit. Fine for probing,\n"
-                        "#         the PID will never command this much.\n",
+          Serial.printf("#   note: past %.0f deg flight limit, ok for probing\n"
+                        "#         PID never commands this much\n",
                         MAX_GIMBAL_DEG);
         gimbalStep(linkPitch, servoPitch, "pitch", gp, false);
         gimbalStep(linkYaw,   servoYaw,   "yaw  ", gy, false);
@@ -664,8 +664,8 @@ void benchRun() {
       case 'W': {
         float rad, dummy;
         if (readTwoNumbers(rad, dummy) == 0 || rad <= 0.0f) rad = MAX_GIMBAL_DEG;
-        Serial.printf("# ENVELOPE WALK at %.1f deg. 12 points, 1 s each. "
-                      "Any key aborts.\n", rad);
+        Serial.printf("# envelope walk %.1f deg, 12 points, 1 s each. SERVOS MOVE. "
+                      "hands clear. any key aborts\n", rad);
         Serial.println("#  bearing   pitch     yaw    reachable");
         bool aborted = false;
         for (int deg = 0; deg < 360 && !aborted; deg += 30) {
@@ -702,8 +702,8 @@ void benchRun() {
       case 'M': {
         int sl = logSaveNow(true);
         if (sl >= 0)
-          Serial.printf("# LOG: buffer saved to slot %d, %lu samples "
-                        "(the last %.1f s). Reboot is safe now.\n",
+          Serial.printf("# log: saved to slot %d, %lu samples "
+                        "(last %.1f s). reboot safe\n",
                         sl, (unsigned long)logCount, logCount / 200.0f);
         break;
       }
@@ -722,7 +722,7 @@ void benchRun() {
         benchForceGyroOnly = false;
         servoPitch.write(linkPitch.servoTrim);
         servoYaw.write(linkYaw.servoTrim);
-        Serial.println("# Leaving bench mode.");
+        Serial.println("# bench exit");
         return;
       case '\n': case '\r': continue;
       case 'z':
@@ -756,15 +756,15 @@ void benchRun() {
             if (fabsf(sv - want) < bestErr) { bestErr = fabsf(sv - want); bestD = d; }
           }
           if (bestErr < 0.3f)
-            Serial.printf("#   %s  model says this is %+.1f deg of nozzle\n", nm, bestD);
+            Serial.printf("#   %s  model: %+.1f deg of nozzle\n", nm, bestD);
           else
-            Serial.printf("#   %s  model says this servo angle is UNREACHABLE\n", nm);
+            Serial.printf("#   %s  model: UNREACHABLE\n", nm);
         }
-        Serial.println("#   Measure the real nozzle angle and tell me both numbers.");
+        Serial.println("#   nozzle_deg: measure both axes");
         break;
       }
       default:
-        Serial.printf("# unknown command '%c'.  ? for the menu.\n", c);
+        Serial.printf("# unknown command '%c'. ? menu\n", c);
         continue;
     }
     //no banner() here: reprinting the menu after every command would bury a stepped sweep like G-2 G-4 G-6
